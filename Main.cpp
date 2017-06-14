@@ -15,11 +15,65 @@ using json = nlohmann::json;
 */
 
 json histogramGray(string path,json& output);
-int main(int argc,string* argv)
+struct phase
+{
+	float phase1 = 0.2;
+	float phase2 = 0.3;
+	float phase3 = 0.2;
+	float phase4 = 0.15;
+	bool phase2reached = false;
+	int whichPhase(float middleColor)
+	{
+		int ret = 1;
+		if (!phase2reached)
+		{
+			if (middleColor > phase2)
+			{
+				phase2reached = true;
+				return 2;
+			}
+		}
+		else
+		{
+			if (middleColor > phase3)
+			{
+				return 3;
+			}
+			else
+			{
+				return 4;
+			}
+		}
+		return ret;
+	}
+}p;
+bool showPictures;
+int main(int argc,char** argv)
 {
 	DIR *dir;
+	showPictures = false;
+	p.phase2reached= false;
 	struct dirent *ent;
-	string path = "C:\\oko\\dane_testowe1\\D_0ccf910f7fafc450a7c23785278eec2a\\2016-03-03";
+	string path;
+	if (argc < 2)
+	{
+		cout << "eyeAnalyser[path] [pic(to show processed pictures)]";
+		//path = "C:\\oko\\dane_testowe1\\D_0ccf910f7fafc450a7c23785278eec2a\\2016-03-03";
+	}
+	else
+	{
+		path = argv[1];
+	}
+	if (argc==3)
+	{
+		cout << argv[2] << endl;
+		if (string("pic") .compare(argv[2])==0)
+		{
+			
+			showPictures = true;
+		}
+	}
+	
 	
 	if ((dir = opendir(path.c_str())) != NULL) {
 		/* print all the files and directories within directory */
@@ -53,7 +107,7 @@ int main(int argc,string* argv)
 		perror("");
 		return EXIT_FAILURE;
 	}
-}
+} 
 json histogramGray(string path,json& output)
 {
 
@@ -107,7 +161,7 @@ json histogramGray(string path,json& output)
 	for (int i = 1; i < histSize; i++)
 	{
 		float curr = b_hist.at<float>(i - 1)/pixels;
-		cout << curr;
+		//cout << curr;
 		middleColor += i*curr;
 		histSum += curr;
 		hist.push_back(curr);
@@ -116,19 +170,25 @@ json histogramGray(string path,json& output)
 			Scalar(255, 0, 0), 2, 8, 0);
 	}
 	middleColor /= histSize;
-
+	int _phase= p.whichPhase(middleColor);
 	cout << std::endl << "middleColor: " << middleColor;
 	cout << std::endl << "histSum: " << histSum;
-	/// Display
-	namedWindow("histogram" , CV_WINDOW_AUTOSIZE);
-	imshow("histogram", histImage);
-	namedWindow("source", WINDOW_NORMAL);
-	resizeWindow("source", 600, 600);
-	imshow("source", src);
-	waitKey(0);
+	cout << std::endl << "phase" << _phase;
 	output["middleColor"] = middleColor;
 	output["histogram"] = hist;
 	output["size"] = { size.height,size.width };
+	output["phase"] = _phase;
+	/// Display
+	if (showPictures)
+	{
+		namedWindow("histogram", CV_WINDOW_AUTOSIZE);
+		imshow("histogram", histImage);
+		namedWindow("source", WINDOW_NORMAL);
+		resizeWindow("source", 600, 600);
+		imshow("source", src);
+		waitKey(0);
+	}
+
 	return hist;
 }
 
